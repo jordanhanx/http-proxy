@@ -1,7 +1,6 @@
 ### compile option ###
 CC = g++
-CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -MMD
-LIB = -lpthread
+CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -pthread -MMD
 
 ### directory ###
 SRC_DIR = src
@@ -29,7 +28,7 @@ all: $(PROGS)
 # @echo running: $@ : $^ # print taget and dependencies
 
 $(PROGS): $(BUILD_DIR)/%: $(OBJ_DIR)/%.o $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@ $(LIB)
+	$(CC) $(CFLAGS) $^ -o $@
 
 $(MAIN_OBJS): $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
