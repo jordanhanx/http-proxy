@@ -6,7 +6,7 @@
 #include <iostream>
 #include <ostream>
 
-#include "../socket/Socket.hpp"
+#include "../Socket/Socket.hpp"
 
 class ProxyServer {
  private:

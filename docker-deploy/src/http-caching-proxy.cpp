@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "proxy-server/ProxyServer.hpp"
+#include "ProxyServer/ProxyServer.hpp"
 
 int main(int argc, char ** argv) {
   if (argc == 2) {
