@@ -1,15 +1,13 @@
 ### compile option ###
 CC = g++
-CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -pthread -MMD
+CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -pthread -MMD -I $(BOOST_DIR)
+BOOST_DIR = /usr/include/boost
 
 ### directory ###
 SRC_DIR = src
 BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/obj
 # TEST_DIR =
-
-$(shell mkdir -p $(BUILD_DIR))
-$(shell mkdir -p $(OBJ_DIR))
 
 ### variables ###
 MAIN_SRCS = $(wildcard $(SRC_DIR)/*.cpp)
@@ -24,8 +22,7 @@ PROGS = $(addprefix $(BUILD_DIR)/, $(patsubst %.cpp, %, $(notdir $(MAIN_SRCS))))
 # $(info    PROGS is $(PROGS)) # print variable
 
 ### targets ###
-all: $(PROGS)
-# @echo running: $@ : $^ # print taget and dependencies
+all: initProj $(PROGS)
 
 $(PROGS): $(BUILD_DIR)/%: $(OBJ_DIR)/%.o $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
@@ -36,6 +33,14 @@ $(MAIN_OBJS): $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 .SECONDEXPANSION:
 $(OBJS) : $(OBJ_DIR)/%.o: $$(SRC_DIR)/$$*/%.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
+
+initProj: $(SRC_DIR) $(BUILD_DIR) $(OBJ_DIR)
+$(SRC_DIR):
+	mkdir -p $(SRC_DIR)
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
 
 -include $(wildcard $(OBJ_DIR)/*.d) # include all dependencies
 
