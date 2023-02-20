@@ -2,16 +2,21 @@
 #include <exception>
 #include <iostream>
 
-#include "AsynTcpServer/AsynTcpServer.hpp"
+#include "mThrTcpServer/mThrTcpServer.hpp"
 
 int main(int argc, char ** argv) {
   try {
     if (argc == 2) {
-      AsynTcpServer server(argv[1]);
+      mThrTcpServer server(argv[1], "1");
+      server.runServer();
+    }
+    else if (argc == 3) {
+      mThrTcpServer server(argv[1], argv[2]);
       server.runServer();
     }
     else {
-      std::cerr << "Usage: ./http-caching-proxy <port>\n";
+      std::cerr << "Invalid arguments!\n"
+                << "Usage: ./http-caching-proxy <port> [<threads>]\n";
       exit(EXIT_FAILURE);
     }
   }

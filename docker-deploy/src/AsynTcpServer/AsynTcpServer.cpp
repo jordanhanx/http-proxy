@@ -1,39 +1,6 @@
 /*------------------------------  AsynTcpServer.cpp  ---------------------------------*/
 #include "AsynTcpServer.hpp"
 
-Connection::Connection(boost::asio::ip::tcp::socket socket) : socket_(std::move(socket)) {
-}
-
-void Connection::start() {
-  do_read();
-}
-
-void Connection::do_read() {
-  auto self(shared_from_this());
-  boost::asio::async_read_until(
-      socket_,
-      boost::asio::dynamic_buffer(self->string_buffer),
-      "\n",
-      [self](boost::system::error_code ec, std::size_t /*length*/) {
-        if (!ec) {
-          std::cout << self->string_buffer;
-          self->do_write();
-        }
-      });
-}
-
-void Connection::do_write() {
-  auto self(shared_from_this());
-  boost::asio::async_write(socket_,
-                           boost::asio::buffer("echo: " + self->string_buffer),
-                           [self](boost::system::error_code ec, std::size_t /*length*/) {
-                             if (!ec) {
-                               self->string_buffer.clear();
-                               self->do_read();
-                             }
-                           });
-}
-
 AsynTcpServer::AsynTcpServer(const char * port) :
     io_context_(1),
     acceptor_(
@@ -61,6 +28,46 @@ void AsynTcpServer::runServer() {
   do_accept();
   io_context_.run();
   std::cout << "server closed.\n";
+}
+
+AsynTcpServer::Connection::Connection(boost::asio::ip::tcp::socket socket) :
+    socket_(std::move(socket)) {
+}
+
+AsynTcpServer::Connection::~Connection() {
+  std::cout << "server: connection close from "
+            << socket_.remote_endpoint().address().to_string() << ":"
+            << std::to_string(socket_.remote_endpoint().port()) << "\n";
+}
+
+void AsynTcpServer::Connection::start() {
+  do_read();
+}
+
+void AsynTcpServer::Connection::do_read() {
+  auto self(shared_from_this());
+  boost::asio::async_read_until(
+      socket_,
+      boost::asio::dynamic_buffer(self->string_buffer),
+      "\n",
+      [self](boost::system::error_code ec, std::size_t /*length*/) {
+        if (!ec) {
+          std::cout << self->string_buffer;
+          self->do_write();
+        }
+      });
+}
+
+void AsynTcpServer::Connection::do_write() {
+  auto self(shared_from_this());
+  boost::asio::async_write(socket_,
+                           boost::asio::buffer("echo: " + self->string_buffer),
+                           [self](boost::system::error_code ec, std::size_t /*length*/) {
+                             if (!ec) {
+                               self->string_buffer.clear();
+                               self->do_read();
+                             }
+                           });
 }
 
 /*------------------------------------  EOF  ---------------------------------------*/
