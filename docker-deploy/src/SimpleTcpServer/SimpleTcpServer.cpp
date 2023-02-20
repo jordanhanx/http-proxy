@@ -1,19 +1,10 @@
-/*------------------------------  ProxyServer.hpp  ---------------------------------*/
-#include "ProxyServer.hpp"
+/*------------------------------  SimpleTcpServer.cpp  ---------------------------------*/
+#include "SimpleTcpServer.hpp"
 
-ProxyServer::ProxyServer() : out(std::cout) {
+SimpleTcpServer::SimpleTcpServer(const char * port) : socket(port), out(std::cout) {
 }
 
-ProxyServer::ProxyServer(const char * port) : socket(port), out(std::cout) {
-}
-
-ProxyServer::ProxyServer(const char * port, std::ostream & out) : socket(port), out(out) {
-}
-
-ProxyServer::~ProxyServer() {
-}
-
-void ProxyServer::runServer() {
+void SimpleTcpServer::runServer() {
   try {
     socket.listenOnPort();
     out << "Server: waiting for connections on " + socket.getSocketIP() + "\n";

@@ -1,20 +1,22 @@
 #include <cstdlib>
+#include <exception>
 #include <iostream>
 
-#include "ProxyServer/ProxyServer.hpp"
+#include "AsynTcpServer/AsynTcpServer.hpp"
 
 int main(int argc, char ** argv) {
-  if (argc == 2) {
-    ProxyServer server(argv[1]);
-    server.runServer();
+  try {
+    if (argc == 2) {
+      AsynTcpServer server(argv[1]);
+      server.runServer();
+    }
+    else {
+      std::cerr << "Usage: ./http-caching-proxy <port>\n";
+      exit(EXIT_FAILURE);
+    }
   }
-  else if (argc == 1) {
-    ProxyServer server("12345");
-    server.runServer();
-  }
-  else {
-    std::cerr << "Usage: ./http-caching-proxy [port, default=12345]\n";
-    exit(EXIT_FAILURE);
+  catch (const std::exception & e) {
+    std::cout << "Exception: " << e.what() << "\n";
   }
 
   return EXIT_SUCCESS;
