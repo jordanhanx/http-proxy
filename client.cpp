@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <ctime>  
 
 namespace beast = boost::beast;     // from <boost/beast.hpp>
 namespace http = beast::http;       // from <boost/beast/http.hpp>
@@ -18,19 +20,25 @@ int main(int argc, char** argv)
     try
     {
         // Check command line arguments.
-        if(argc != 4 && argc != 5)
+        if(argc != 5 && argc != 6)
         {
             std::cerr <<
                 "Usage: http-client-sync <host> <port> <target> [<HTTP version: 1.0 or 1.1(default)>]\n" <<
                 "Example:\n" <<
-                "    http-client-sync www.example.com 80 /\n" <<
-                "    http-client-sync www.example.com 80 / 1.0\n";
+                "    http-client-sync get www.example.com 80 /\n" <<
+                "    http-client-sync post www.example.com 80 / 1.0\n";
             return EXIT_FAILURE;
         }
-        auto const host = argv[1];
-        auto const port = argv[2];
-        auto const target = argv[3];
-        int version = argc == 5 && !std::strcmp("1.0", argv[4]) ? 10 : 11;
+        auto const method = argv[1];
+        auto const host = argv[2];
+        auto const port = argv[3];
+        auto const target = argv[4];
+        int version = argc == 6 && !std::strcmp("1.0", argv[5]) ? 10 : 11;
+
+        //print receiving a new request
+        auto curr_time = std::chrono::system_clock::now();
+        std::time_t end_time = std::chrono::system_clock::to_time_t(curr_time);
+        std::cout << "\"" <<  method <<  " " << host << " HTTP/1.1\" from " << std::ctime(&end_time) << std::endl;
 
         // The io_context is required for all I/O
         net::io_context ioc;
@@ -44,26 +52,52 @@ int main(int argc, char** argv)
 
         // Make the connection on the IP address we get from a lookup
         stream.connect(results);
-
+        http::request<http::string_body> req;
         // Set up an HTTP GET request message
-        http::request<http::string_body> req{http::verb::get, target, version};
+        if(beast::iequals(method, "get")){
+            req = {http::verb::get, target, version};
+        }else if(beast::iequals(method, "post")){
+            req = {http::verb::post, target, version};
+        }
+
+        // http::request<http::string_body> req{http::verb::get, target, version};
+        
+                    
         req.set(http::field::host, host);
         req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-
+        
+        std::cout << "Requesting \"" <<  method <<  " " << host << " HTTP/1.1\" from " << host << std::endl;
         // Send the HTTP request to the remote host
         http::write(stream, req);
-
         // This buffer is used for reading and must be persisted
         beast::flat_buffer buffer;
-
+        // http::response_parser<http::string_body> parser;
+        // http::read_header(stream, buffer, parser);
         // Declare a container to hold the response
         http::response<http::dynamic_body> res;
-
         // Receive the HTTP response
         http::read(stream, buffer, res);
 
-        // Write the message to standard out
-        std::cout << res << std::endl;
+        // * get method
+        if(beast::iequals(method, "get")){
+            // Write the message to standard out
+            std::cout << "\nFor test: \n" << res.base() << std::endl;
+            // http::read(stream, buffer, parser);
+            std::cout << "Received \"HTTP/1.1 " << res.base().result_int() << " " << res.base().result() <<  "\" from " << host << std::endl;
+        }
+        
+        // * post method
+        if(beast::iequals(method, "post")){
+            // write an empty body response 
+            http::response<http::empty_body> response;
+            response.version(11);
+            response.result(http::status::ok);
+            // response.set(http::field::server, res.base()[http::field::server]);
+            response.set(http::field::server, host);
+            http::write(stream, response);
+            std::cout << "Received \"HTTP/1.1 " << response.base().result_int() << " " << response.base().result() <<  "\" from " << host << std::endl;
+            std::cout << "\nFor test: \n"  << response << std::endl;
+        }
 
         // Gracefully close the socket
         beast::error_code ec;
@@ -71,7 +105,7 @@ int main(int argc, char** argv)
 
         // not_connected happens sometimes
         // so don't bother reporting it.
-        //
+        
         if(ec && ec != beast::errc::not_connected)
             throw beast::system_error{ec};
 
@@ -79,6 +113,7 @@ int main(int argc, char** argv)
     }
     catch(std::exception const& e)
     {
+        std::cerr << "400" << std::endl;
         std::cerr << "Error: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
