@@ -82,6 +82,7 @@ int main(int argc, char** argv)
         if(beast::iequals(method, "get")){
             // Write the message to standard out
             std::cout << "\nFor test: \n" << res.base() << std::endl;
+            std::cout <<res.base()[http::field::last_modified] << std::endl;
             // http::read(stream, buffer, parser);
             std::cout << "Received \"HTTP/1.1 " << res.base().result_int() << " " << res.base().result() <<  "\" from " << host << std::endl;
         }
