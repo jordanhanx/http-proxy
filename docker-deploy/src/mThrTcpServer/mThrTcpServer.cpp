@@ -49,12 +49,7 @@ mThrTcpServer::Connection::~Connection() {
 }
 
 void mThrTcpServer::Connection::start() {
-  // We need to be executing within a strand to perform async operations
-  // on the I/O objects in this session. Although not strictly necessary
-  // for single-threaded contexts, this example code is written to be
-  // thread-safe by default.
-  auto self(shared_from_this());
-  boost::asio::dispatch(socket_.get_executor(), [self]() { self->readClientRequest(); });
+  readClientRequest();
 }
 
 void mThrTcpServer::Connection::readClientRequest() {

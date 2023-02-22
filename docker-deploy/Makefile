@@ -1,6 +1,6 @@
 ### compile option ###
 CC = g++
-CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -pthread -MMD -I $(BOOST_DIR)
+CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -MMD -pthread -I $(BOOST_DIR) -fsanitize=thread
 BOOST_DIR = /usr/include/boost
 
 ### directory ###
