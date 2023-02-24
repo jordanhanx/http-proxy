@@ -2,16 +2,17 @@
 #include <exception>
 #include <iostream>
 
-#include "mThrTcpServer/mThrTcpServer.hpp"
+// #include "mThrTcpServer/mThrTcpServer.hpp"
+#include "ProxyServer/ProxyServer.hpp"
 
 int main(int argc, char ** argv) {
   try {
     if (argc == 2) {
-      mThrTcpServer server(argv[1], "1");
+      ProxyServer server(argv[1], "1");
       server.runServer();
     }
     else if (argc == 3) {
-      mThrTcpServer server(argv[1], argv[2]);
+      ProxyServer server(argv[1], argv[2]);
       server.runServer();
     }
     else {

@@ -68,9 +68,31 @@ void mThrTcpServer::Connection::readClientRequest() {
 }
 
 void mThrTcpServer::Connection::sendClientResponse() {
+  std::vector<char> ok200;
+  ok200.push_back('H');
+  ok200.push_back('T');
+  ok200.push_back('T');
+  ok200.push_back('P');
+  ok200.push_back('/');
+  ok200.push_back('1');
+  ok200.push_back('.');
+  ok200.push_back('1');
+  ok200.push_back(' ');
+  ok200.push_back('2');
+  ok200.push_back('0');
+  ok200.push_back('0');
+  ok200.push_back(' ');
+  ok200.push_back('O');
+  ok200.push_back('K');
+  ok200.push_back('\r');
+  ok200.push_back('\n');
+  ok200.push_back('\r');
+  ok200.push_back('\n');
+
   auto self(shared_from_this());
   boost::asio::async_write(socket_,
-                           boost::asio::buffer("echo: " + self->string_buffer),
+                           //  boost::asio::buffer("echo: " + self->string_buffer),
+                           boost::asio::dynamic_buffer(ok200),
                            [self](boost::system::error_code ec, std::size_t /*length*/) {
                              if (!ec) {
                                self->string_buffer.clear();

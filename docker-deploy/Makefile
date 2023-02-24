@@ -1,7 +1,10 @@
 ### compile option ###
 CC = g++
-CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -MMD -pthread -I $(BOOST_DIR) -fsanitize=thread
-BOOST_DIR = /usr/include/boost
+CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -MMD $(MTHREAD_FLAG) $(INCLUDE_DIR)
+
+MTHREAD_FLAG = -pthread #-fsanitize=thread
+# INCLUDE_DIR = -I /usr/include/boost
+# LIBS = -lssl -lcrypto
 
 ### directory ###
 SRC_DIR = src
@@ -25,7 +28,7 @@ PROGS = $(addprefix $(BUILD_DIR)/, $(patsubst %.cpp, %, $(notdir $(MAIN_SRCS))))
 all: initProj $(PROGS)
 
 $(PROGS): $(BUILD_DIR)/%: $(OBJ_DIR)/%.o $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@ $(LIBS)
 
 $(MAIN_OBJS): $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
