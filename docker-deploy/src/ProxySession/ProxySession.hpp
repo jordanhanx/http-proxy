@@ -36,6 +36,9 @@ class ProxySession : public std::enable_shared_from_this<ProxySession> {
   void lookupCache();
   void updateCache();
 
+  void send400ToClient();
+  void send502ToClient();
+
  public:
   explicit ProxySession(boost::asio::ip::tcp::socket socket);
   ~ProxySession();

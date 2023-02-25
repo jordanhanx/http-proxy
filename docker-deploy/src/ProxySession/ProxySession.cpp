@@ -33,7 +33,7 @@ void ProxySession::recvReqFrClient() {
             tunnel->start(self, host);
           }
           else if (request.method() == boost::beast::http::verb::post) {
-            sendReqToOriginServer();
+            connectOriginServer(host);
           }
           else if (request.method() == boost::beast::http::verb::get) {
             lookupCache();
@@ -45,6 +45,7 @@ void ProxySession::recvReqFrClient() {
         else {
           std::cerr << "readReqFrClient() ec: " << ec.message() << "\n[" << request
                     << "]\n";
+          send400ToClient();
         }
       });
 }
@@ -83,6 +84,7 @@ void ProxySession::recvResFrOriginServer() {
         else {
           std::cerr << "recvResFrOriginServer() ec: " << ec.message() << "\n["
                     << response.base() << "]\n";
+          send502ToClient();
         }
       });
 }
@@ -137,6 +139,20 @@ void ProxySession::lookupCache() {
 }
 
 void ProxySession::updateCache() {
+  sendResToClient();
+}
+
+void ProxySession::send400ToClient() {
+  response = {};
+  response.version(11);
+  response.result(boost::beast::http::status::bad_request);
+  sendResToClient();
+}
+
+void ProxySession::send502ToClient() {
+  response = {};
+  response.version(11);
+  response.result(boost::beast::http::status::bad_gateway);
   sendResToClient();
 }
 /*------------------------------------  EOF  ---------------------------------------*/
