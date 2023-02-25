@@ -11,17 +11,18 @@
 #include <iostream>
 #include <memory>
 
+#include "../ConnectTunnel/ConnectTunnel.hpp"
+
 class ProxySession : public std::enable_shared_from_this<ProxySession> {
  private:
-  boost::asio::ip::tcp::socket client_socket;
-  boost::asio::ip::tcp::socket server_socket;
-
+  boost::asio::ip::tcp::socket client;
+  boost::asio::ip::tcp::socket server;
   std::string client_address;
   std::string server_address;
 
-  boost::asio::streambuf buf;  // (Must persist between reads)
-  std::array<uint8_t, 65536> bytes_buf;
+  ConnectTunnel tunnel;
 
+  boost::asio::streambuf buf;  // (Must persist between reads)
   boost::beast::http::request<boost::beast::http::empty_body> request;
   boost::beast::http::response<boost::beast::http::string_body> response;
 
@@ -30,19 +31,13 @@ class ProxySession : public std::enable_shared_from_this<ProxySession> {
   void recvResFrOriginServer();
   void sendResToClient();
 
-  void connectOriginServer(const std::string & host, const std::string & port);
-  void send200okToClient();
+  void connectOriginServer(const std::string & host);
 
-  void recvBytesFrClient();
-  void sendBytesToOriginServer(std::size_t bytes_transferred);
-  void recvBytesFrOriginServer();
-  void sendBytesToClient(std::size_t bytes_transferred);
-
-  void lookupCache(const std::string & host, const std::string & port);
+  void lookupCache();
   void updateCache();
 
  public:
-  ProxySession(boost::asio::ip::tcp::socket socket);
+  explicit ProxySession(boost::asio::ip::tcp::socket socket);
   ~ProxySession();
   void start();
 };
