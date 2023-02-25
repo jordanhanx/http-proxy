@@ -135,10 +135,17 @@ void ProxySession::connectOriginServer(const std::string & host) {
 void ProxySession::lookupCache() {
   auto suffix_pos = request[boost::beast::http::field::host].rfind(":443");
   auto host = std::string(request[boost::beast::http::field::host]).substr(0, suffix_pos);
+  // if (!cache.checkResExist(req.target)) { connectOriginServer(host); }
+  // else {
+  //  if (cache.checkValidate(req.target)) { response = cache.getResponse(req.target); }
+  //  else { request.set( cache.getNewDate(req.target) ); connectOriginServer(host); )
+  // }
   connectOriginServer(host);
 }
 
 void ProxySession::updateCache() {
+  // if (response.status == 304) { response = cache.updateResponse(req.target, response))}
+  // else if (response.status == 200) { cache.updateResponse(req.target, response)}
   sendResToClient();
 }
 
