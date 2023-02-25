@@ -2,7 +2,7 @@
 #include "ProxySession.hpp"
 
 ProxySession::ProxySession(boost::asio::ip::tcp::socket socket) :
-    client(std::move(socket)), server(socket.get_executor()), tunnel(client, server) {
+    client(std::move(socket)), server(socket.get_executor()) {
   client_address = client.remote_endpoint().address().to_string() + ":" +
                    std::to_string(client.remote_endpoint().port());
 }
@@ -26,14 +26,18 @@ void ProxySession::recvReqFrClient() {
         // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
         if (!ec) {
           auto suffix_pos = request[boost::beast::http::field::host].rfind(":443");
-          auto host = std::string(request.target()).substr(0, suffix_pos);
+          auto host =
+              std::string(request[boost::beast::http::field::host]).substr(0, suffix_pos);
           if (request.method() == boost::beast::http::verb::connect) {
-            tunnel.start(self, host);
+            tunnel = std::unique_ptr<ConnectTunnel>(new ConnectTunnel(client, server));
+            tunnel->start(self, host);
           }
-          // else if (request.method() == boost::beast::http::verb::post) {
-          // }
-          // else if (request.method() == boost::beast::http::verb::get) {
-          // }
+          else if (request.method() == boost::beast::http::verb::post) {
+            sendReqToOriginServer();
+          }
+          else if (request.method() == boost::beast::http::verb::get) {
+            lookupCache();
+          }
           else {
             std::cerr << "readReqFrClient() unsupported method:\n[" << request << "]\n";
           }
@@ -92,12 +96,11 @@ void ProxySession::sendResToClient() {
         // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
         std::cout << "<client " << client_address << "> ";
         if (!ec) {
-          std::cout << "sendResToClient() successfully\n";
+          recvReqFrClient();
         }
         else {
           std::cerr << "sendResToClient() ec: " << ec.message() << "\n";
         }
-        // close session
       });
 }
 
@@ -129,7 +132,7 @@ void ProxySession::connectOriginServer(const std::string & host) {
 
 void ProxySession::lookupCache() {
   auto suffix_pos = request[boost::beast::http::field::host].rfind(":443");
-  auto host = std::string(request.target()).substr(0, suffix_pos);
+  auto host = std::string(request[boost::beast::http::field::host]).substr(0, suffix_pos);
   connectOriginServer(host);
 }
 

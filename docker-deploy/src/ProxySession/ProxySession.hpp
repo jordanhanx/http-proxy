@@ -20,10 +20,10 @@ class ProxySession : public std::enable_shared_from_this<ProxySession> {
   std::string client_address;
   std::string server_address;
 
-  ConnectTunnel tunnel;
+  std::unique_ptr<ConnectTunnel> tunnel;  // lazy construct
 
-  boost::asio::streambuf buf;  // (Must persist between reads)
-  boost::beast::http::request<boost::beast::http::empty_body> request;
+  boost::asio::streambuf buf;
+  boost::beast::http::request<boost::beast::http::string_body> request;
   boost::beast::http::response<boost::beast::http::string_body> response;
 
   void recvReqFrClient();
