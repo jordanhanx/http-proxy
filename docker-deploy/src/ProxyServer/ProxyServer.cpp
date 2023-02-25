@@ -22,7 +22,7 @@ void ProxyServer::do_accept() {
           std::cout << "accepted connection from "
                     << client_socket.remote_endpoint().address().to_string() << ":"
                     << std::to_string(client_socket.remote_endpoint().port()) << "\n";
-          std::make_shared<ProxySession>(std::move(client_socket))->start();
+          std::make_shared<ProxySession>(std::move(client_socket), logger)->start();
         }
         else {
           std::cerr << "async_accept ec: " << ec.message() << "\n";
@@ -37,7 +37,6 @@ void ProxyServer::runServer() {
     thr_pool[i] = std::thread([this]() { io_context_.run(); });
   }
   io_context_.run();
-  std::cout << "server closed.\n";
 }
 
 /*------------------------------------  EOF  ---------------------------------------*/

@@ -5,12 +5,14 @@
 #include <boost/asio.hpp>
 
 #include <cstdlib>
-#include <cstring>
-#include <functional>
+#include <fstream>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <thread>
+#include <utility>
 
+#include "../Logger/Logger.hpp"
 #include "../ProxySession/ProxySession.hpp"
 
 class ProxyServer {
@@ -21,6 +23,8 @@ class ProxyServer {
   boost::asio::io_context io_context_;
   /// Acceptor used to listen for incoming connections.
   boost::asio::ip::tcp::acceptor acceptor_;
+  /// logger
+  Logger logger{"./proxy.log"};
 
   void do_accept();
 

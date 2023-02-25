@@ -5,33 +5,40 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 
+#include <atomic>
 #include <cstdlib>
-#include <cstring>
-#include <functional>
 #include <iostream>
 #include <memory>
+#include <string>
+#include <utility>
 
 #include "../ConnectTunnel/ConnectTunnel.hpp"
+#include "../Logger/Logger.hpp"
 
 class ProxySession : public std::enable_shared_from_this<ProxySession> {
  private:
+  static std::atomic<size_t> nextRequestID;
+
   boost::asio::ip::tcp::socket client;
   boost::asio::ip::tcp::socket server;
-  std::string client_address;
-  std::string server_address;
 
-  std::unique_ptr<ConnectTunnel> tunnel;  // lazy construct
+  Logger & logger;
+
+  std::string client_ip;
+  std::string server_host;
 
   boost::asio::streambuf buf;
   boost::beast::http::request<boost::beast::http::string_body> request;
   boost::beast::http::response<boost::beast::http::string_body> response;
+
+  std::unique_ptr<ConnectTunnel> tunnel;  // lazy construct
 
   void recvReqFrClient();
   void sendReqToOriginServer();
   void recvResFrOriginServer();
   void sendResToClient();
 
-  void connectOriginServer(const std::string & host);
+  void connectOriginServer();
 
   void lookupCache();
   void updateCache();
@@ -40,7 +47,7 @@ class ProxySession : public std::enable_shared_from_this<ProxySession> {
   void send502ToClient();
 
  public:
-  explicit ProxySession(boost::asio::ip::tcp::socket socket);
+  ProxySession(boost::asio::ip::tcp::socket socket, Logger & logger);
   ~ProxySession();
   void start();
 };

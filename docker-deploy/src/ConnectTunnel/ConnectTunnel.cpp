@@ -2,12 +2,15 @@
 #include "ConnectTunnel.hpp"
 
 ConnectTunnel::ConnectTunnel(boost::asio::ip::tcp::socket & client,
-                             boost::asio::ip::tcp::socket & server) :
-    client(client), server(server) {
+                             boost::asio::ip::tcp::socket & server,
+                             const std::string & requestID,
+                             Logger & logger) :
+    client(client), server(server), requestID(requestID), logger(logger) {
 }
 
 ConnectTunnel::~ConnectTunnel() {
   std::cout << "Tunnel closed\n";
+  logger.log(requestID + ": Tunnel closed");
 }
 
 void ConnectTunnel::start(std::shared_ptr<void> session, const std::string & host) {
@@ -23,7 +26,7 @@ void ConnectTunnel::connectToServer(const std::string & host) {
     std::cerr << "connectToServer(" << host << ":443) ec: " << ec.message() << "\n";
   }
 
-  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive, this);
+  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive.lock(), this);
   boost::asio::async_connect(server,
                              endpoints,
                              [this, self, host](boost::system::error_code ec,
@@ -44,7 +47,7 @@ void ConnectTunnel::send200okToClient() {
   response.version(11);
   response.result(boost::beast::http::status::ok);
 
-  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive, this);
+  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive.lock(), this);
   boost::beast::http::async_write(
       client,
       response,
@@ -62,7 +65,7 @@ void ConnectTunnel::send200okToClient() {
 
 // upstream
 void ConnectTunnel::recvBytesFrClient() {
-  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive, this);
+  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive.lock(), this);
   client.async_read_some(
       boost::asio::buffer(upstream_buf),
       [this, self](boost::system::error_code ec, std::size_t bytes_transferred) {
@@ -76,7 +79,7 @@ void ConnectTunnel::recvBytesFrClient() {
       });
 }
 void ConnectTunnel::sendBytesToOriginServer(std::size_t bytes_transferred) {
-  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive, this);
+  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive.lock(), this);
   boost::asio::async_write(
       server,
       boost::asio::buffer(upstream_buf, bytes_transferred),
@@ -93,7 +96,7 @@ void ConnectTunnel::sendBytesToOriginServer(std::size_t bytes_transferred) {
 
 // downstream
 void ConnectTunnel::recvBytesFrOriginServer() {
-  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive, this);
+  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive.lock(), this);
   server.async_read_some(
       boost::asio::buffer(downstream_buf),
       [this, self](boost::system::error_code ec, std::size_t bytes_transferred) {
@@ -107,7 +110,7 @@ void ConnectTunnel::recvBytesFrOriginServer() {
       });
 }
 void ConnectTunnel::sendBytesToClient(std::size_t bytes_transferred) {
-  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive, this);
+  auto self = std::shared_ptr<ConnectTunnel>(keepSessionAlive.lock(), this);
   boost::asio::async_write(
       client,
       boost::asio::buffer(downstream_buf, bytes_transferred),

@@ -10,11 +10,16 @@
 #include <memory>
 #include <string>
 
+#include "../Logger/Logger.hpp"
+
 class ConnectTunnel {
  private:
-  std::shared_ptr<void> keepSessionAlive;
+  std::weak_ptr<void> keepSessionAlive;
   boost::asio::ip::tcp::socket & client;
   boost::asio::ip::tcp::socket & server;
+  std::string requestID;
+  Logger & logger;
+
   std::array<char, 65536> upstream_buf;
   std::array<char, 65536> downstream_buf;
 
@@ -29,7 +34,9 @@ class ConnectTunnel {
 
  public:
   ConnectTunnel(boost::asio::ip::tcp::socket & client,
-                boost::asio::ip::tcp::socket & server);
+                boost::asio::ip::tcp::socket & server,
+                const std::string & requestID,
+                Logger & logger);
   ~ConnectTunnel();
 
   void start(std::shared_ptr<void> session, const std::string & host);
