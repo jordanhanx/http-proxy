@@ -25,6 +25,7 @@ class ProxyServer {
   boost::asio::ip::tcp::acceptor acceptor_;
   /// logger
   Logger logger{"./proxy.log"};
+  /// Cache
 
   void do_accept();
 

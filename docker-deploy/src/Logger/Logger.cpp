@@ -2,14 +2,14 @@
 #include "Logger.hpp"
 
 Logger::Logger(const std::string & path) : path(path) {
-  if (!myFile.is_open()) {
-    myFile.open(path, std::fstream::app);
+  if (!log_file.is_open()) {
+    log_file.open(path, std::fstream::app);
   }
 }
 Logger::~Logger() {
-  if (myFile.is_open()) {
-    myFile.flush();
-    myFile.close();
+  if (log_file.is_open()) {
+    log_file.flush();
+    log_file.close();
   }
 }
 
@@ -18,39 +18,58 @@ std::string Logger::getUTCNow() {  // return a string ending with a '\n'
   return std::asctime(std::gmtime(&time));
 }
 
+std::string Logger::getHTTPVersion(unsigned int version_int) {
+  return "HTTP/" + std::to_string(version_int / 10) + "." +
+         std::to_string(version_int % 10);
+}
+
 void Logger::log(const std::string & s) {
   std::lock_guard<std::mutex> lck(mtx);
-  myFile << s << std::endl;
+  log_file << s << std::endl;
 }
 
-void Logger::logRecvReq(const std::string & requestID,
-                        const std::string & requestHeader,
+void Logger::logRecvReq(const std::string & request_id,
+                        const std::string & request_method,
+                        const std::string & request_target,
+                        unsigned int request_version,
                         const std::string & from) {
   std::lock_guard<std::mutex> lck(mtx);
-  myFile << requestID << ": \"" << requestHeader << "\" from " << from << " @ "
-         << getUTCNow() << std::flush;
+  log_file << request_id << ": \"" << request_method << " " << request_target << " "
+           << getHTTPVersion(request_version) << "\" from " << from << " @ "
+           << getUTCNow() << std::flush;
 }
-void Logger::logRequesting(const std::string & requestID,
-                           const std::string & requestHeader,
-                           const std::string & from) {
+void Logger::logRequesting(const std::string & request_id,
+                           const std::string & request_method,
+                           const std::string & request_target,
+                           unsigned int request_version,
+                           const std::string & server) {
   std::lock_guard<std::mutex> lck(mtx);
-  myFile << requestID << ": "
-         << "Requesting \"" << requestHeader << "\" from " << from << std::endl;
-}
-
-void Logger::logRecvRes(const std::string & requestID,
-                        const std::string & responseHeader,
-                        const std::string & from) {
-  std::lock_guard<std::mutex> lck(mtx);
-  myFile << requestID << ": "
-         << "Received \"" << responseHeader << "\" from " << from << std::endl;
+  log_file << request_id << ": "
+           << "Requesting \"" << request_method << " " << request_target << " "
+           << getHTTPVersion(request_version) << "\" from " << server << std::endl;
 }
 
-void Logger::logResponding(const std::string & requestID,
-                           const std::string & responseHeader) {
+void Logger::logRecvRes(const std::string & request_id,
+                        unsigned int response_version,
+                        unsigned int response_result_int,
+                        const std::string & response_reason,
+                        const std::string & server) {
   std::lock_guard<std::mutex> lck(mtx);
-  myFile << requestID << ": "
-         << "Responding \"" << responseHeader << "\"" << std::endl;
+
+  log_file << request_id << ": "
+           << "Received \"" << getHTTPVersion(response_version) << " "
+           << response_result_int << " " << response_reason << "\" from " << server
+           << std::endl;
+}
+
+void Logger::logResponding(const std::string & request_id,
+                           unsigned int response_version,
+                           unsigned int response_result_int,
+                           const std::string & response_reason) {
+  std::lock_guard<std::mutex> lck(mtx);
+  log_file << request_id << ": "
+           << "Responding \"" << getHTTPVersion(response_version) << " "
+           << response_result_int << " " << response_reason << "\"" << std::endl;
 }
 
 /*---------------------------------  EOF  -------------------------------------*/

@@ -14,16 +14,17 @@
 
 class ConnectTunnel {
  private:
-  std::weak_ptr<void> keepSessionAlive;
+  std::weak_ptr<void> session_life_tracker;
   boost::asio::ip::tcp::socket & client;
   boost::asio::ip::tcp::socket & server;
-  std::string requestID;
+  std::string request_id;
+  std::string server_host;
   Logger & logger;
 
   std::array<char, 65536> upstream_buf;
   std::array<char, 65536> downstream_buf;
 
-  void connectToServer(const std::string & host);
+  void connectToServer();
   void send200okToClient();
   // upstream
   void recvBytesFrClient();
@@ -33,13 +34,15 @@ class ConnectTunnel {
   void sendBytesToClient(std::size_t bytes_transferred);
 
  public:
-  ConnectTunnel(boost::asio::ip::tcp::socket & client,
+  ConnectTunnel(std::shared_ptr<void> session,
+                boost::asio::ip::tcp::socket & client,
                 boost::asio::ip::tcp::socket & server,
-                const std::string & requestID,
+                const std::string & request_id,
+                const std::string & server_host,
                 Logger & logger);
   ~ConnectTunnel();
 
-  void start(std::shared_ptr<void> session, const std::string & host);
+  void start();
 };
 
 #endif

@@ -17,7 +17,7 @@
 
 class ProxySession : public std::enable_shared_from_this<ProxySession> {
  private:
-  static std::atomic<size_t> nextRequestID;
+  static std::atomic<size_t> next_request_id;
 
   boost::asio::ip::tcp::socket client;
   boost::asio::ip::tcp::socket server;

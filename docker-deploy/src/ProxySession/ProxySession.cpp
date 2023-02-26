@@ -1,7 +1,7 @@
 /*------------------------------  ProxySession.cpp  ---------------------------------*/
 #include "ProxySession.hpp"
 
-std::atomic<size_t> ProxySession::nextRequestID(1);
+std::atomic<size_t> ProxySession::next_request_id(1);
 
 ProxySession::ProxySession(boost::asio::ip::tcp::socket socket, Logger & logger) :
     client(std::move(socket)), server(socket.get_executor()), logger(logger) {
@@ -12,7 +12,6 @@ ProxySession::~ProxySession() {
 }
 
 void ProxySession::start() {
-  // std::cout << "readReqFrClient()...\n";
   recvReqFrClient();
 }
 
@@ -24,23 +23,27 @@ void ProxySession::recvReqFrClient() {
       buf,
       request,
       [this, self](boost::system::error_code ec, std::size_t /*length*/) {
-        // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
-        request.set("requestID", nextRequestID);
-        nextRequestID++;
+        request.set("request_id", next_request_id);
+        next_request_id++;
         if (!ec) {
           auto suffix_pos = request[boost::beast::http::field::host].rfind(":443");
           server_host =
               request[boost::beast::http::field::host].substr(0, suffix_pos).to_string();
-          logger.logRecvReq(request["requestID"].to_string(),
-                            request.method_string().to_string() + " " +
-                                request.target().to_string() + " " +
-                                std::to_string(request.version()),
+          logger.logRecvReq(request["request_id"].to_string(),
+                            request.method_string().to_string(),
+                            request.target().to_string(),
+                            request.version(),
                             client_ip);
 
           if (request.method() == boost::beast::http::verb::connect) {
-            tunnel = std::unique_ptr<ConnectTunnel>(new ConnectTunnel(
-                client, server, request["requestID"].to_string(), logger));
-            tunnel->start(self, server_host);
+            tunnel = std::unique_ptr<ConnectTunnel>(
+                new ConnectTunnel(self,
+                                  client,
+                                  server,
+                                  request["request_id"].to_string(),
+                                  server_host,
+                                  logger));
+            tunnel->start();
           }
           else if (request.method() == boost::beast::http::verb::post) {
             connectOriginServer();
@@ -68,12 +71,11 @@ void ProxySession::sendReqToOriginServer() {
       server,
       request,
       [this, self](boost::system::error_code ec, std::size_t /*length*/) {
-        // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
         if (!ec) {
-          logger.logRequesting(std::string(request["requestID"]),
-                               request.method_string().to_string() + " " +
-                                   request.target().to_string() + " " +
-                                   std::to_string(request.version()),
+          logger.logRequesting(std::string(request["request_id"]),
+                               request.method_string().to_string(),
+                               request.target().to_string(),
+                               request.version(),
                                server_host);
           recvResFrOriginServer();
         }
@@ -91,12 +93,12 @@ void ProxySession::recvResFrOriginServer() {
       buf,
       response,
       [this, self](boost::system::error_code ec, std::size_t /*length*/) {
-        // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
         if (!ec) {
-          logger.logRecvRes(request["requestID"].to_string(),
-                            std::to_string(response.version()) + " " +
-                                std::to_string(response.result_int()) + " " +
-                                response.reason().to_string(),
+          response.set("request_id", request["request_id"]);
+          logger.logRecvRes(response["request_id"].to_string(),
+                            response.version(),
+                            response.result_int(),
+                            response.reason().to_string(),
                             server_host);
           updateCache();
         }
@@ -114,13 +116,12 @@ void ProxySession::sendResToClient() {
       client,
       response,
       [this, self](boost::system::error_code ec, std::size_t /*length*/) {
-        // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
         if (!ec) {
-          logger.logResponding(request["requestID"].to_string(),
-                               std::to_string(response.version()) + " " +
-                                   std::to_string(response.result_int()) + " " +
-                                   response.reason().to_string());
-          recvReqFrClient();
+          logger.logResponding(response["request_id"].to_string(),
+                               response.version(),
+                               response.result_int(),
+                               response.reason().to_string());
+          // recvReqFrClient();
         }
         else {
           std::cerr << "sendResToClient() ec: " << ec.message() << "\n";
@@ -142,7 +143,6 @@ void ProxySession::connectOriginServer() {
       server,
       endpoints,
       [this, self](boost::system::error_code ec, boost::asio::ip::tcp::endpoint ep) {
-        // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
         if (!ec) {
           sendReqToOriginServer();
         }
