@@ -147,8 +147,10 @@ void ProxySession::connectOriginServer() {
           sendReqToOriginServer();
         }
         else {
+          send400ToClient();
           std::cerr << "connectOriginServer(" << server_host
                     << ":80) ec: " << ec.message() << "\n";
+          
         }
       });
 }
@@ -183,6 +185,8 @@ void ProxySession::send400ToClient() {
   response = {};
   response.version(11);
   response.result(boost::beast::http::status::bad_request);
+  response.body() = "HTTP/1.1 400 Bad Request";
+  response.prepare_payload();
   sendResToClient();
 }
 
@@ -190,6 +194,8 @@ void ProxySession::send502ToClient() {
   response = {};
   response.version(11);
   response.result(boost::beast::http::status::bad_gateway);
+  response.body() = "HTTP/1.1 502 Bad Gateway";
+  response.prepare_payload();
   sendResToClient();
 }
 /*------------------------------------  EOF  ---------------------------------------*/
