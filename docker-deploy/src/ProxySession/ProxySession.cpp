@@ -3,8 +3,8 @@
 
 std::atomic<size_t> ProxySession::next_request_id(1);
 
-ProxySession::ProxySession(boost::asio::ip::tcp::socket socket, Logger & logger) :
-    client(std::move(socket)), server(socket.get_executor()), logger(logger) {
+ProxySession::ProxySession(boost::asio::ip::tcp::socket socket, Logger & logger, Cache & cache) :
+    client(std::move(socket)), server(socket.get_executor()), logger(logger), cache(cache){
   client_ip = client.remote_endpoint().address().to_string();
 }
 
@@ -154,17 +154,27 @@ void ProxySession::connectOriginServer() {
 }
 
 void ProxySession::lookupCache() {
-  // if (!cache.checkResExist(req.target)) { connectOriginServer(host); }
-  // else {
-  //  if (cache.checkValidate(req.target)) { response = cache.getResponse(req.target); }
-  //  else { request.set( cache.getNewDate(req.target) ); connectOriginServer(host); )
-  // }
-  connectOriginServer();
+  if(!cache.checkResExist(request.target().to_string())){
+    connectOriginServer();
+  }else{
+    if(cache.checkValidate(request.target().to_string())){
+      response = cache.getResponse(request.target().to_string());
+      sendResToClient();
+    }else{
+       request.set(http::field::if_modified_since, cache.getCahchedDate(request.target().to_string()));
+       connectOriginServer();
+    }
+  }
 }
 
 void ProxySession::updateCache() {
-  // if (response.status == 304) { response = cache.updateResponse(req.target, response))}
-  // else if (response.status == 200) { cache.updateResponse(req.target, response)}
+  if(response.result_int() == 304){
+    response = cache.updateResponse(response, request.target().to_string(), true, logger);
+  }else{
+    if(response.result_int() == 200){
+      cache.updateResponse(response, request.target().to_string(), false, logger);
+    }
+  }
   sendResToClient();
 }
 

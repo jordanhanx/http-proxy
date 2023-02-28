@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "../Logger/Logger.hpp"
+#include "../Cache/Cache.hpp"
 #include "../ProxySession/ProxySession.hpp"
 
 class ProxyServer {
@@ -26,6 +27,7 @@ class ProxyServer {
   /// logger
   Logger logger{"./proxy.log"};
   /// Cache
+  Cache cache;
 
   void do_accept();
 

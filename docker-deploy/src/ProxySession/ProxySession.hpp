@@ -14,6 +14,7 @@
 
 #include "../ConnectTunnel/ConnectTunnel.hpp"
 #include "../Logger/Logger.hpp"
+#include "../Cache/Cache.hpp"
 
 class ProxySession : public std::enable_shared_from_this<ProxySession> {
  private:
@@ -23,6 +24,7 @@ class ProxySession : public std::enable_shared_from_this<ProxySession> {
   boost::asio::ip::tcp::socket server;
 
   Logger & logger;
+  Cache & cache;
 
   std::string client_ip;
   std::string server_host;
@@ -47,7 +49,7 @@ class ProxySession : public std::enable_shared_from_this<ProxySession> {
   void send502ToClient();
 
  public:
-  ProxySession(boost::asio::ip::tcp::socket socket, Logger & logger);
+  ProxySession(boost::asio::ip::tcp::socket socket, Logger & logger, Cache & cache);
   ~ProxySession();
   void start();
 };
