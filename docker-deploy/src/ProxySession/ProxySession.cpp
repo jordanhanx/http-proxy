@@ -1,17 +1,17 @@
 /*------------------------------  ProxySession.cpp  ---------------------------------*/
 #include "ProxySession.hpp"
 
-ProxySession::ProxySession(boost::asio::ip::tcp::socket socket) :
-    client(std::move(socket)), server(socket.get_executor()) {
-  client_address = client.remote_endpoint().address().to_string() + ":" +
-                   std::to_string(client.remote_endpoint().port());
+std::atomic<size_t> ProxySession::next_request_id(1);
+
+ProxySession::ProxySession(boost::asio::ip::tcp::socket socket, Logger & logger, Cache & cache) :
+    client(std::move(socket)), server(socket.get_executor()), logger(logger), cache(cache){
+  client_ip = client.remote_endpoint().address().to_string();
 }
 
 ProxySession::~ProxySession() {
 }
 
 void ProxySession::start() {
-  // std::cout << "readReqFrClient()...\n";
   recvReqFrClient();
 }
 
@@ -23,17 +23,30 @@ void ProxySession::recvReqFrClient() {
       buf,
       request,
       [this, self](boost::system::error_code ec, std::size_t /*length*/) {
-        // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
+        request.set("request_id", next_request_id);
+        next_request_id++;
         if (!ec) {
           auto suffix_pos = request[boost::beast::http::field::host].rfind(":443");
-          auto host =
-              std::string(request[boost::beast::http::field::host]).substr(0, suffix_pos);
+          server_host =
+              request[boost::beast::http::field::host].substr(0, suffix_pos).to_string();
+          logger.logRecvReq(request["request_id"].to_string(),
+                            request.method_string().to_string(),
+                            request.target().to_string(),
+                            request.version(),
+                            client_ip);
+
           if (request.method() == boost::beast::http::verb::connect) {
-            tunnel = std::unique_ptr<ConnectTunnel>(new ConnectTunnel(client, server));
-            tunnel->start(self, host);
+            tunnel = std::unique_ptr<ConnectTunnel>(
+                new ConnectTunnel(self,
+                                  client,
+                                  server,
+                                  request["request_id"].to_string(),
+                                  server_host,
+                                  logger));
+            tunnel->start();
           }
           else if (request.method() == boost::beast::http::verb::post) {
-            connectOriginServer(host);
+            connectOriginServer();
           }
           else if (request.method() == boost::beast::http::verb::get) {
             lookupCache();
@@ -45,7 +58,9 @@ void ProxySession::recvReqFrClient() {
         else {
           std::cerr << "readReqFrClient() ec: " << ec.message() << "\n[" << request
                     << "]\n";
-          send400ToClient();
+          if (ec != boost::beast::http::error::end_of_stream) {
+            send400ToClient();
+          }
         }
       });
 }
@@ -56,8 +71,12 @@ void ProxySession::sendReqToOriginServer() {
       server,
       request,
       [this, self](boost::system::error_code ec, std::size_t /*length*/) {
-        // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
         if (!ec) {
+          logger.logRequesting(std::string(request["request_id"]),
+                               request.method_string().to_string(),
+                               request.target().to_string(),
+                               request.version(),
+                               server_host);
           recvResFrOriginServer();
         }
         else {
@@ -74,11 +93,13 @@ void ProxySession::recvResFrOriginServer() {
       buf,
       response,
       [this, self](boost::system::error_code ec, std::size_t /*length*/) {
-        // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
         if (!ec) {
-          // std::cout << "recvResFrOriginServer() successfully :\n[" << response.base()
-          //           << "]\n";
-          // std::cout << "updateCache()...\n";
+          response.set("request_id", request["request_id"]);
+          logger.logRecvRes(response["request_id"].to_string(),
+                            response.version(),
+                            response.result_int(),
+                            response.reason().to_string(),
+                            server_host);
           updateCache();
         }
         else {
@@ -95,10 +116,12 @@ void ProxySession::sendResToClient() {
       client,
       response,
       [this, self](boost::system::error_code ec, std::size_t /*length*/) {
-        // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
-        std::cout << "<client " << client_address << "> ";
         if (!ec) {
-          recvReqFrClient();
+          logger.logResponding(response["request_id"].to_string(),
+                               response.version(),
+                               response.result_int(),
+                               response.reason().to_string());
+          // recvReqFrClient();
         }
         else {
           std::cerr << "sendResToClient() ec: " << ec.message() << "\n";
@@ -106,39 +129,53 @@ void ProxySession::sendResToClient() {
       });
 }
 
-void ProxySession::connectOriginServer(const std::string & host) {
+void ProxySession::connectOriginServer() {
   boost::system::error_code ec;
   // Make the connection on the IP address we get from a lookup
   auto ipResolver = boost::asio::ip::tcp::resolver(server.get_executor());
-  auto endpoints = ipResolver.resolve(host, "http", ec);
+  auto endpoints = ipResolver.resolve(server_host, "http", ec);
   if (ec) {
-    std::cerr << "connectOriginServer(" << host << ":80) ec: " << ec.message() << "\n";
+    std::cerr << "connectOriginServer(" << server_host << ":80) ec: " << ec.message()
+              << "\n";
   }
   auto self = shared_from_this();
-  boost::asio::async_connect(server,
-                             endpoints,
-                             [this, self, host](boost::system::error_code ec,
-                                                boost::asio::ip::tcp::endpoint ep) {
-                               // std::cout << "(thr_id=" << std::this_thread::get_id() << ") ";
-                               if (!ec) {
-                                 server_address = ep.address().to_string() + ":" +
-                                                  std::to_string(ep.port());
-                                 sendReqToOriginServer();
-                               }
-                               else {
-                                 std::cerr << "connectOriginServer(" << host
-                                           << ":80) ec: " << ec.message() << "\n";
-                               }
-                             });
+  boost::asio::async_connect(
+      server,
+      endpoints,
+      [this, self](boost::system::error_code ec, boost::asio::ip::tcp::endpoint ep) {
+        if (!ec) {
+          sendReqToOriginServer();
+        }
+        else {
+          std::cerr << "connectOriginServer(" << server_host
+                    << ":80) ec: " << ec.message() << "\n";
+        }
+      });
 }
 
 void ProxySession::lookupCache() {
-  auto suffix_pos = request[boost::beast::http::field::host].rfind(":443");
-  auto host = std::string(request[boost::beast::http::field::host]).substr(0, suffix_pos);
-  connectOriginServer(host);
+  if(!cache.checkResExist(request.target().to_string())){
+    logger.log(request["request_id"].to_string() + ": not in cache");
+    connectOriginServer();
+  }else{
+    if(cache.checkValidate(request.target().to_string(), logger)){
+      response = cache.getResponse(request.target().to_string());
+      sendResToClient();
+    }else{
+      request.set(http::field::if_modified_since, cache.getCahchedDate(request.target().to_string()));
+      connectOriginServer();
+    }
+  }
 }
 
 void ProxySession::updateCache() {
+  if(response.result_int() == 304){
+    response = cache.updateResponse(response, request.target().to_string(), true, logger);
+  }else{
+    if(response.result_int() == 200){
+      cache.updateResponse(response, request.target().to_string(), false, logger);
+    }
+  }
   sendResToClient();
 }
 
