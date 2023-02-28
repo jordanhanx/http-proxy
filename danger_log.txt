@@ -1,8 +1,9 @@
 ----------------------------
 Robust to External Failures:
 ----------------------------
-If client send a malformed request to the proxy, our application will send back a 400 error message back to client.
-Also, if server send a corrupted resposne, the application will also send a 502 error message to inform client.
+- If client send a malformed request to the proxy, our application will send back a 400 error message back to client.
+- Also, if server send a corrupted resposne, the application will also send a 502 error message to inform client.
+
 
 ----------------------------
 Cache Policy:
@@ -10,10 +11,16 @@ Cache Policy:
 When our application acts like server to receive request from client:
 1. If proxy receive a GET request, it will first look at cache to see if it has been cached
   a. if found, move to step 2
-  b. if not found, connect to server and get response from actual server
-2. While found in the cache, check if this response need re-validate 
-  a. if don't need revalidate, send the http resposne to client
-  b. if need, send the revalidation request to actual server
+  b. if not found, 
+    - log the not cacheable message into proxy.log
+    - connect to server and get response from actual server
+2. While found in the cache, check if this response need re-validate or is expired
+  a. if don't need revalidate, and the response is not expired
+    - log the valid in cache message into proxy.log
+    - send the http resposne to client
+  b. if need, 
+    - log either expired time or need revalidate info into proxy.log
+    - send the revalidation request to actual server, and get updated response from it
 
 When our application acts like client to receive response from server:
 1. If it's a 304 response, return the existing response in cache
@@ -21,30 +28,52 @@ When our application acts like client to receive response from server:
 
 Cacheable Policy:
 ----------------------------
-if the cache-control field in response contains private or no store,
-or max_age, expired_time is equal to -1, this cache is not cacheable
+- if the cache-control field in response contains private or no store, it's not cacheable
+- if max_age, expired_time is equal to -1, this cache is not cacheable
 
-if current time passed the expired time (since we use library to parse it, so it provide expired time for us)
+Revalidate Policy:
+----------------------------
+- if the cache-control field contains filed "no-cache" or "must-revalidate", it must be revalidate
+- if current time passed the expired time (since we use library to parse it, and it provides expired time for us)
 then, this http response needs revalidate.
 
 Update Policy:
 ----------------------------
-If the this response is been cached, 
+- if the response is been cached, then just locate the cached response, and update its value
 
 Insert Policy
 ----------------------------
+1. If the response is not been cached, then need to first figure out if it can be cached indicated by 
+the cacheable policy. 
+  a. If is not cacheble, log the message to proxy.log
+  b. If can be cached, continue to step2
+2. Follow the revalidate policy to check if this response need to be revalidate
+  a. If yes, log the message to proxy.log
+  b. Else, 
+    - log the expired time in proxy.log 
+    - insert the response to the Cache
+3. If cache is full, our cache follows a first in first out(FIFO) to remove the first element stored in the cache
 
 
-
-
+----------------------------
+Handle Synchronization:
+----------------------------
+- we use lock-guard to protect cache for each read and write operation
+- And we also have lock for our logger while writting every message
 
 
 
 ----------------------------
-Other Considerations:
+Exception Guarantees :
 ----------------------------
-Our application can handle get, post, and connect method. But it may raises concern when http redirection client to 
-infected website or accessing malicious resource without their consent. And it may have some security issues
+- We have a basic exception for all our classes.
+- Since we implement our http proxy using Asio library, we will get updates on error code notification,
+so we can handle these erros based on error code accordingly
+- If there is an error detected while parsing the HTTP from server or client, our proxy will send a malformed error respect
+to either a response or request
+
+
+
 
 
 

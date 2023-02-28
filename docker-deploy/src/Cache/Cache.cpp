@@ -105,7 +105,6 @@ void Cache::handle_200(http::response<http::string_body> new_res, const std::str
       std::cout << "add cache" << std::endl;
       cache_size++;
     }
-    // int idx = (cache_size <= max_size) ? cache_size-1:curr;
     cache_lookup.insert({url, curr});
     curr++;
     std::cout << "cache look up add 1" << std::endl;
@@ -146,6 +145,7 @@ int Cache::get_cache_idx(const std::string& url){
   
 }
 
+//find response stored in cache
 http::response<http::string_body> Cache::find_res(const std::string& url){
   std::lock_guard<std::mutex> lck(mtx);
   std::cout << "current size: " << cache_size << std::endl;
@@ -187,15 +187,9 @@ bool Cache::need_revalidate(const std::string& url, const std::string& expires, 
   bool need = true;
   std::string need_revalidate = "must-revalidate";
   std::string no_cache = "no-cache";
-  // std::time_t curr_time = get_curr_time();
-  // if(!(expires.empty() && cache_control.empty())){
   if(!cache_control.empty()){
-    // std::tm expired_time;
-    // strptime(expires.substr(0, expires.size()-3).c_str(), "%a,%d %b %Y %H:%M:%S", &expired_time);
-    // std::time_t e_time = mktime(&expired_time);
     if(boost::algorithm::contains(cache_control, need_revalidate)
-      || boost::algorithm::contains(cache_control, no_cache)
-      || check_expired(url, expires)){
+      || boost::algorithm::contains(cache_control, no_cache)){
       std::cout << "need revalidate" << std::endl;
       return need;
     }
@@ -204,6 +198,7 @@ bool Cache::need_revalidate(const std::string& url, const std::string& expires, 
   return !need;
 }
 
+//check if the response stored in cache pass the expired time
 bool Cache::check_expired(const std::string& url, const std::string& expires){
   bool expired = true;
   std::time_t curr_time = get_curr_time();
@@ -218,7 +213,7 @@ bool Cache::check_expired(const std::string& url, const std::string& expires){
   return !expired;
 }
 
-
+//helper method to get current time
 std::time_t Cache::get_curr_time(){
   auto curr_time = std::chrono::system_clock::now();
   std::time_t end_time = std::chrono::system_clock::to_time_t(curr_time);
