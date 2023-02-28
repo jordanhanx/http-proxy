@@ -15,12 +15,22 @@ bool Cache::checkResExist(const std::string& url){
   return is_exist;
 }
 
-bool Cache::checkValidate(const std::string& url){
+bool Cache::checkValidate(const std::string& url, Logger& logger){
   std::cout << "current size: " << cache_size << std::endl;
   http::response<http::string_body> res = find_res(url);
   std::string expires = std::string(res.base()[http::field::expires]);
+  if(check_expired(url, expires)){
+    logger.log(res["request_id"].to_string() +  ": in cache, but expired at " + expires);
+  }
   const std::string cache_control = std::string(res.base()[http::field::cache_control]);
-  return need_revalidate(url, expires, cache_control);
+  
+  bool validate = need_revalidate(url, expires, cache_control);
+  if(!validate){
+    logger.log(res["request_id"].to_string() +  ": in cache, requires validation");
+  }else{
+    logger.log(res["request_id"].to_string() +  ": in cache, valid");
+  }
+  return validate;
 }
 
 http::response<http::string_body> Cache::getResponse(const std::string& url){
@@ -41,9 +51,6 @@ http::response<http::string_body> Cache::updateResponse(http::response<http::str
   std::cout << "current size: " << cache_size << std::endl;
    if(updateHeader){
     std::cout << "update header: " <<  find_res(url) << std::endl;
-    // http::response<http::string_body> original = ;
-    find_res(url).base() = update.base();
-    std::cout << "original base : " <<   find_res(url).base() << std::endl;
     return find_res(url);
    }else{
     if(get_cache_idx(url) != -1){
@@ -82,20 +89,15 @@ void Cache::handle_200(http::response<http::string_body> new_res, const std::str
   //check if new_res existed
   std::cout << "check cache not exist" << std::endl;
   //not exist
-  if(can_be_cached(new_res)){
+  if(can_be_cached(new_res, logger)){
     if(cache_size == max_size){
       std::cout << "cache full" << std::endl;
       curr = curr % max_size;
-      std::cout << "check 1" << std::endl;
       auto it = std::find_if(std::begin(cache_lookup), std::end(cache_lookup),
                          [&](const std::pair<std::string,int>& p)->bool { return p.second == curr; });
-      std::cout << "check 2" << std::endl;
       std::cout << it->second["request_id"] << std::endl;
       cache_lookup.erase(it); 
-      std::cout << "check 3" << std::endl;
       cache[curr] = new_res;
-      std::cout << "check 4" << std::endl;
-
       std::cout << "cache look up remove element and cache update element" << std::endl;
     }else{
       std::cout << "cache not full" << std::endl;
@@ -117,16 +119,15 @@ void Cache::handle_200(http::response<http::string_body> new_res, const std::str
     }else{
       if(!expires.empty()){
         //LOG: cached, expires at EXPIRES
-        logger.log(new_res["request_id"].to_string() + ": cached, but expires at " + expires);
+        logger.log(new_res["request_id"].to_string() + ": cached, expires at " + expires);
         std::cout<< "cached, expires at " << expires << std::endl;
       }
-      logger.log(new_res["request_id"].to_string()+ ": cached" + expires);
+      // logger.log(new_res["request_id"].to_string()+ ": cached" + expires);
       std::cout<< "cached" << std::endl;
     }
   }else{
     //can not cache
     //LOG: not cacheable because REASON
-    logger.log(new_res["request_id"].to_string() + ": not cacheable");
     std::cout<< "not cacheable" << std::endl;
     return;
   }
@@ -152,7 +153,7 @@ http::response<http::string_body> Cache::find_res(const std::string& url){
 }
 
 //if response has private or no store in cache-control field, or max-age, expires equals -1, it cannot be cached
-bool Cache::can_be_cached(http::response<http::string_body> res){
+bool Cache::can_be_cached(http::response<http::string_body> res, Logger & logger){
   std::cout << "start can be cache" << std::endl;
   bool can_cache = true;
   const auto cache_control = std::string(res.base()[http::field::cache_control]);
@@ -162,14 +163,23 @@ bool Cache::can_be_cached(http::response<http::string_body> res){
   int max_age_idx = (cache_control.find(std::string("max-age"))!= std::string::npos) ? cache_control.find(std::string("max-age")): -1;
     // std::cout << max_age_idx << std::endl;
   const auto max_age_val = (max_age_idx != -1) ? cache_control.substr(max_age_idx+8, 2): " ";
-  if(boost::algorithm::contains(cache_control, is_private) 
-     || boost::algorithm::contains(cache_control, no_store)
-     || beast::iequals(expires, "-1")
-     || beast::iequals(max_age_val, "-1")){
-      std::cout << "can not cache" << std::endl;
-      return !can_cache;
+  if(boost::algorithm::contains(cache_control, is_private)){
+    logger.log(res["request_id"].to_string() + ": not cacheable because is " + is_private);
+    return !can_cache;
+  }else if(boost::algorithm::contains(cache_control, no_store)){
+    logger.log(res["request_id"].to_string() + ": not cacheable because is " + no_store);
+    return !can_cache;
+  }else if(beast::iequals(expires, "-1")){
+    logger.log(res["request_id"].to_string() + ": not cacheable because expires is -1 ");
+    return !can_cache;
+  }else if(beast::iequals(max_age_val, "-1")){
+    logger.log(res["request_id"].to_string() + ": not cacheable because max_age is -1 ");
+    return !can_cache;
+  }else{
+    return can_cache;
   }
-  return can_cache;
+
+  
 }
 
 //check if resposne has field must-revalidate or no-cache, need revalidate
@@ -177,20 +187,35 @@ bool Cache::need_revalidate(const std::string& url, const std::string& expires, 
   bool need = true;
   std::string need_revalidate = "must-revalidate";
   std::string no_cache = "no-cache";
-  std::time_t curr_time = get_curr_time();
-  if(!(expires.empty() && cache_control.empty())){
-    std::tm expired_time;
-    strptime(expires.substr(0, expires.size()-3).c_str(), "%a,%d %b %Y %H:%M:%S", &expired_time);
-    std::time_t e_time = mktime(&expired_time);
+  // std::time_t curr_time = get_curr_time();
+  // if(!(expires.empty() && cache_control.empty())){
+  if(!cache_control.empty()){
+    // std::tm expired_time;
+    // strptime(expires.substr(0, expires.size()-3).c_str(), "%a,%d %b %Y %H:%M:%S", &expired_time);
+    // std::time_t e_time = mktime(&expired_time);
     if(boost::algorithm::contains(cache_control, need_revalidate)
       || boost::algorithm::contains(cache_control, no_cache)
-      || difftime(e_time, curr_time) < 0){
-            std::cout << "need revalidate" << std::endl;
-            return need;
+      || check_expired(url, expires)){
+      std::cout << "need revalidate" << std::endl;
+      return need;
     }
   }
   std::cout << "don't need revalidate" << std::endl;
   return !need;
+}
+
+bool Cache::check_expired(const std::string& url, const std::string& expires){
+  bool expired = true;
+  std::time_t curr_time = get_curr_time();
+  if(!expires.empty()){
+    std::tm expired_time;
+    strptime(expires.substr(0, expires.size()-3).c_str(), "%a,%d %b %Y %H:%M:%S", &expired_time);
+    std::time_t e_time = mktime(&expired_time);
+    if(difftime(e_time, curr_time) < 0){
+      return expired;
+    }
+  }
+  return !expired;
 }
 
 

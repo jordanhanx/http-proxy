@@ -155,14 +155,15 @@ void ProxySession::connectOriginServer() {
 
 void ProxySession::lookupCache() {
   if(!cache.checkResExist(request.target().to_string())){
+    logger.log(request["request_id"].to_string() + ": not in cache");
     connectOriginServer();
   }else{
-    if(cache.checkValidate(request.target().to_string())){
+    if(cache.checkValidate(request.target().to_string(), logger)){
       response = cache.getResponse(request.target().to_string());
       sendResToClient();
     }else{
-       request.set(http::field::if_modified_since, cache.getCahchedDate(request.target().to_string()));
-       connectOriginServer();
+      request.set(http::field::if_modified_since, cache.getCahchedDate(request.target().to_string()));
+      connectOriginServer();
     }
   }
 }

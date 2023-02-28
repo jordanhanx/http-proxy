@@ -19,7 +19,7 @@ class Cache{
 public:
   Cache():cache_size(0), max_size(20), curr(0) {};
   bool checkResExist(const std::string& url);
-  bool checkValidate(const std::string& url);
+  bool checkValidate(const std::string& url, Logger & log);
   http::response<http::string_body> getResponse(const std::string& url);
   std::string getCahchedDate(const std::string& url);
   void printCache();
@@ -42,8 +42,9 @@ private:
   http::response<http::string_body> find_res(const std::string& url);
   void handle_200(http::response<http::string_body> new_res, const std::string& url, Logger & log);
   int get_cache_idx(const std::string& url);
-  bool can_be_cached(http::response<http::string_body> res);
+  bool can_be_cached(http::response<http::string_body> res, Logger & logger);
   bool need_revalidate(const std::string& url, const std::string& expires, const std::string& cache_control);
+  bool check_expired(const std::string& url, const std::string& expires);
   std::time_t get_curr_time();
 };
 
