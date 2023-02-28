@@ -12,8 +12,8 @@
 #include <thread>
 #include <utility>
 
-#include "../Logger/Logger.hpp"
 #include "../Cache/Cache.hpp"
+#include "../Logger/Logger.hpp"
 #include "../ProxySession/ProxySession.hpp"
 
 class ProxyServer {
@@ -25,7 +25,8 @@ class ProxyServer {
   /// Acceptor used to listen for incoming connections.
   boost::asio::ip::tcp::acceptor acceptor_;
   /// logger
-  Logger logger{"./proxy.log"};
+  // Logger logger{"./proxy.log"};
+  Logger logger{"/var/log/erss/proxy.log"};
   /// Cache
   Cache cache;
 

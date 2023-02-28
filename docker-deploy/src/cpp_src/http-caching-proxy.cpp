@@ -1,12 +1,17 @@
+#include <unistd.h>
+
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <stdexcept>
 
-// #include "mThrTcpServer/mThrTcpServer.hpp"
 #include "ProxyServer/ProxyServer.hpp"
 
 int main(int argc, char ** argv) {
   try {
+    if (daemon(0, 0) != 0) {
+      throw std::runtime_error("Error: cannot become a daemon");
+    }
     if (argc == 2) {
       ProxyServer server(argv[1], "1");
       server.runServer();

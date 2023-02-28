@@ -1,3 +1,2 @@
 .vscode/
-build/
-docker-deploy/proxy.log
+src/build/

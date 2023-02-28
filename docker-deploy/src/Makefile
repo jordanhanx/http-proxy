@@ -2,15 +2,14 @@
 CC = g++
 CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -MMD $(MTHREAD_FLAG) $(INCLUDE_DIR)
 
-MTHREAD_FLAG = -pthread -fsanitize=thread
-# INCLUDE_DIR = -I /usr/include/boost
-# LIBS = -lssl -lcrypto
+MTHREAD_FLAG = -pthread
+INCLUDE_DIR = -I /usr/include/boost
 
 ### directory ###
-SRC_DIR = src
-BUILD_DIR = build
+SRC_DIR = cpp_src
+BUILD_DIR = cpp_build
 OBJ_DIR = $(BUILD_DIR)/obj
-# TEST_DIR =
+
 
 ### variables ###
 MAIN_SRCS = $(wildcard $(SRC_DIR)/*.cpp)
@@ -18,11 +17,6 @@ SRCS = $(wildcard $(SRC_DIR)/*/*.cpp)
 MAIN_OBJS = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(notdir $(MAIN_SRCS))))
 OBJS = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(notdir $(SRCS))))
 PROGS = $(addprefix $(BUILD_DIR)/, $(patsubst %.cpp, %, $(notdir $(MAIN_SRCS))))
-# $(info    MAIN_SRCS is $(MAIN_SRCS)) # print variable
-# $(info    SRCS is $(SRCS)) # print variable
-# $(info    MAIN_OBJS is $(MAIN_OBJS)) # print variable
-# $(info    OBJS is $(OBJS)) # print variable
-# $(info    PROGS is $(PROGS)) # print variable
 
 ### targets ###
 all: initProj $(PROGS)
