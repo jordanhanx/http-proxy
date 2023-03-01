@@ -11,5 +11,6 @@ RUN mkdir /var/log/erss
 RUN touch /var/log/erss/proxy.log
 RUN mkdir /code
 WORKDIR /code
-ADD . /code/
-RUN chmod o+x launch.sh
+ADD . /code
+# RUN chmod o+x launch.sh
+RUN ["chmod", "+x", "launch.sh"]

@@ -33,6 +33,7 @@ void ConnectTunnel::connectToServer() {
               << "\n";
   }
 
+  // Alias construct a new shared_ptr if session still alive, otherwise both session and this object will be destoried
   auto self = std::shared_ptr<ConnectTunnel>(session_life_tracker.lock(), this);
   boost::asio::async_connect(
       server,
@@ -53,6 +54,7 @@ void ConnectTunnel::send200okToClient() {
   response.version(11);
   response.result(boost::beast::http::status::ok);
 
+  // Alias construct a new shared_ptr if session still alive, otherwise both session and this object will be destoried
   auto self = std::shared_ptr<ConnectTunnel>(session_life_tracker.lock(), this);
   boost::beast::http::async_write(
       client,
@@ -75,6 +77,7 @@ void ConnectTunnel::send200okToClient() {
 
 // upstream
 void ConnectTunnel::recvBytesFrClient() {
+  // Alias construct a new shared_ptr if session still alive, otherwise both session and this object will be destoried
   auto self = std::shared_ptr<ConnectTunnel>(session_life_tracker.lock(), this);
   client.async_read_some(
       boost::asio::buffer(upstream_buf),
@@ -88,6 +91,7 @@ void ConnectTunnel::recvBytesFrClient() {
       });
 }
 void ConnectTunnel::sendBytesToOriginServer(std::size_t bytes_transferred) {
+  // Alias construct a new shared_ptr if session still alive, otherwise both session and this object will be destoried
   auto self = std::shared_ptr<ConnectTunnel>(session_life_tracker.lock(), this);
   boost::asio::async_write(
       server,
@@ -104,6 +108,7 @@ void ConnectTunnel::sendBytesToOriginServer(std::size_t bytes_transferred) {
 
 // downstream
 void ConnectTunnel::recvBytesFrOriginServer() {
+  // Alias construct a new shared_ptr if session still alive, otherwise both session and this object will be destoried
   auto self = std::shared_ptr<ConnectTunnel>(session_life_tracker.lock(), this);
   server.async_read_some(
       boost::asio::buffer(downstream_buf),
@@ -117,6 +122,7 @@ void ConnectTunnel::recvBytesFrOriginServer() {
       });
 }
 void ConnectTunnel::sendBytesToClient(std::size_t bytes_transferred) {
+  // Alias construct a new shared_ptr if session still alive, otherwise both session and this object will be destoried
   auto self = std::shared_ptr<ConnectTunnel>(session_life_tracker.lock(), this);
   boost::asio::async_write(
       client,

@@ -22,7 +22,8 @@ void ProxyServer::do_accept() {
           std::cout << "accepted connection from "
                     << client_socket.remote_endpoint().address().to_string() << ":"
                     << std::to_string(client_socket.remote_endpoint().port()) << "\n";
-          std::make_shared<ProxySession>(std::move(client_socket), logger, cache)->start();
+          std::make_shared<ProxySession>(std::move(client_socket), logger, cache)
+              ->start();
         }
         else {
           std::cerr << "async_accept ec: " << ec.message() << "\n";
@@ -33,6 +34,7 @@ void ProxyServer::do_accept() {
 
 void ProxyServer::runServer() {
   do_accept();
+  // Multi threads call io_context::run() to invoke callback functions concurrently
   for (std::vector<std::thread>::size_type i = 0; i < thr_pool.size(); ++i) {
     thr_pool[i] = std::thread([this]() { io_context_.run(); });
   }

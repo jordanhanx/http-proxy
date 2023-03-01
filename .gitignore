@@ -1,2 +1,3 @@
 .vscode/
-src/build/
+docker-deploy/src/cpp_build/
+docker-deploy/var/log/erss/proxy.log
