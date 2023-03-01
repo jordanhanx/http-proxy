@@ -1,15 +1,12 @@
-version: '2'
+version: '3.2'
 
 services:
   http-proxy:
     build: ./src
     command: bash -c "./launch.sh"
     volumes:
-      - data-volume:/var/log/erss
-      - ./src:/code
+      - type: bind
+        source: ./var/log/erss
+        target: /var/log/erss
     ports:
       - "12345:12345"
-    tty: true
-
-volumes:
-  data-volume:

@@ -14,7 +14,7 @@
 
 class ConnectTunnel {
  private:
-  std::weak_ptr<void> session_life_tracker;
+  std::weak_ptr<void> session_life_tracker;  // use weak_ptr to trace owner session's life
   boost::asio::ip::tcp::socket & client;
   boost::asio::ip::tcp::socket & server;
   std::string request_id;
