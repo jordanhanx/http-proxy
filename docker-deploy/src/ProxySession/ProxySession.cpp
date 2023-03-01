@@ -185,6 +185,7 @@ void ProxySession::send400ToClient() {
   response = {};
   response.version(11);
   response.result(boost::beast::http::status::bad_request);
+  response.set("request_id", request["request_id"]);
   response.body() = "HTTP/1.1 400 Bad Request";
   response.prepare_payload();
   sendResToClient();
@@ -194,6 +195,7 @@ void ProxySession::send502ToClient() {
   response = {};
   response.version(11);
   response.result(boost::beast::http::status::bad_gateway);
+  response.set("request_id", request["request_id"]);
   response.body() = "HTTP/1.1 502 Bad Gateway";
   response.prepare_payload();
   sendResToClient();

@@ -55,6 +55,7 @@ the cacheable policy.
 3. If cache is full, our cache follows a first in first out(FIFO) to remove the first element stored in the cache
 
 
+
 ----------------------------
 Handle Synchronization:
 ----------------------------

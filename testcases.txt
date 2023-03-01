@@ -1,0 +1,29 @@
+GET:
+    REQ:
+        no-store: Postman send no-store to http://info.cern.ch/hypertext/WWW/LineMode/Defaults/QuickGuide.html
+        no-cache: Postman send no-cache to http://info.cern.ch/hypertext/WWW/LineMode/Defaults/QuickGuide.html
+    RSP:
+        private: http://ptsv2.com/t/zpwjd-1645628789/post
+                 http://www.google.com/
+        no-store: http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx
+        no-cache: http://www.artsci.utoronto.ca/futurestudents
+        max-age=xxx, age=xxx: http://go.com/
+            not in cache, cached, expires at Wed Feb 23 20:31:57 2022
+            in cache, valid
+            in cache, requires validation
+        no Max-age, no Expires: http://www.gov.cn/
+    chunked: http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx
+    host not exist: http://www.aruhgoa.com/
+    302: http://people.duke.edu/~bmr23/ece568/class.html
+    502: https://run.mocky.io/v3/21acc4af-38c4-426d-87f7-ced0319e7b0a
+
+POST:
+    
+    200 ok: http://ptsv2.com/t/zpwjd-1645628789/post
+    200 ok: http://httpbin.org/forms/post
+    400: http://run.mocky.io/v3/0d4cb740-c034-498d-bff5-ee641676c65e
+    502: https://run.mocky.io/v3/21acc4af-38c4-426d-87f7-ced0319e7b0a
+
+CONNECTION:
+    https://www.google.com (search web)
+    https://www.youtube.com/ (connection vedio web with get and post)
