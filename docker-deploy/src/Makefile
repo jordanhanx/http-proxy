@@ -1,6 +1,6 @@
 ### compile option ###
 CC = g++
-CFLAGS = -std=c++11 -Wall -Werror -pedantic -ggdb3 -MMD $(MTHREAD_FLAG) $(INCLUDE_DIR)
+CFLAGS = -std=c++11 -Wall -Werror -pedantic -O3 -MMD $(MTHREAD_FLAG) $(INCLUDE_DIR)
 
 MTHREAD_FLAG = -pthread
 INCLUDE_DIR = -I /usr/include/boost
