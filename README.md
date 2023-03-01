@@ -1,34 +1,35 @@
-## install package
-
-sudo apt install libssl-dev
-
-## compile server
-g++ -I /usr/include/boost -pthread example.cpp 
-g++ -I /usr/include/boost -pthread example.cpp -o example
-
-
-## run server
+## Compile
 ```
-./example 0.0.0.0 8080 .
+cd ./docker-deploy/src/
+make
+```
+## Run
+```
+./docker-deploy/src/cpp_build/http-caching-proxy <port> <threads>
 ```
 
-
-## compile client 
-g++ -I /usr/include/boost -pthread client.cpp -o client
-
-## run client 
-need to type 4 input: method(get/post), host, port & target
+## Hierarchy
 ```
-./client get www.example.com 80 /
-./client post www.example.com 80 / 1.0
-```
+docker-deploy
+│
+├── docker-compose.yml
+│
+├── src
+│   ├── Dockerfile
+│   ├── launch.sh
+│   ├── Makefile
+│   │
+│   ├── cpp_src
+│   │    ├── Cache
+│   │    ├── ConnectTunnel
+│   │    ├── Logger
+│   │    ├── ProxyServer
+│   │    ├── ProxySession
+│   |    └── http-caching-proxy.cpp
+│   |
+|   └── cpp_build
+│        ├── objs
+|        └── http-caching-proxy
 
-more example to try:
 ```
-./client post www.rssweather.com 80 /
- ./client get www.gnu.org 80 /
-```
-
-current version not handle any exception yet
-e.g 502 and 400
 
