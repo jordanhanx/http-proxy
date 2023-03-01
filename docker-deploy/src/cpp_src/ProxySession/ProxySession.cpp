@@ -3,8 +3,13 @@
 
 std::atomic<size_t> ProxySession::next_request_id(1);
 
-ProxySession::ProxySession(boost::asio::ip::tcp::socket socket, Logger & logger, Cache & cache) :
-    client(std::move(socket)), server(socket.get_executor()), logger(logger), cache(cache){
+ProxySession::ProxySession(boost::asio::ip::tcp::socket socket,
+                           Logger & logger,
+                           Cache & cache) :
+    client(std::move(socket)),
+    server(socket.get_executor()),
+    logger(logger),
+    cache(cache) {
   client_ip = client.remote_endpoint().address().to_string();
 }
 
@@ -147,6 +152,7 @@ void ProxySession::connectOriginServer() {
           sendReqToOriginServer();
         }
         else {
+          send400ToClient();
           std::cerr << "connectOriginServer(" << server_host
                     << ":80) ec: " << ec.message() << "\n";
         }
@@ -154,25 +160,29 @@ void ProxySession::connectOriginServer() {
 }
 
 void ProxySession::lookupCache() {
-  if(!cache.checkResExist(request.target().to_string())){
+  if (!cache.checkResExist(request.target().to_string())) {
     logger.log(request["request_id"].to_string() + ": not in cache");
     connectOriginServer();
-  }else{
-    if(cache.checkValidate(request.target().to_string(), logger)){
+  }
+  else {
+    if (cache.checkValidate(request.target().to_string(), logger)) {
       response = cache.getResponse(request.target().to_string());
       sendResToClient();
-    }else{
-      request.set(http::field::if_modified_since, cache.getCahchedDate(request.target().to_string()));
+    }
+    else {
+      request.set(http::field::if_modified_since,
+                  cache.getCahchedDate(request.target().to_string()));
       connectOriginServer();
     }
   }
 }
 
 void ProxySession::updateCache() {
-  if(response.result_int() == 304){
+  if (response.result_int() == 304) {
     response = cache.updateResponse(response, request.target().to_string(), true, logger);
-  }else{
-    if(response.result_int() == 200){
+  }
+  else {
+    if (response.result_int() == 200) {
       cache.updateResponse(response, request.target().to_string(), false, logger);
     }
   }
@@ -183,6 +193,8 @@ void ProxySession::send400ToClient() {
   response = {};
   response.version(11);
   response.result(boost::beast::http::status::bad_request);
+  response.body() = "HTTP/1.1 400 Bad Request";
+  response.prepare_payload();
   sendResToClient();
 }
 
@@ -190,6 +202,8 @@ void ProxySession::send502ToClient() {
   response = {};
   response.version(11);
   response.result(boost::beast::http::status::bad_gateway);
+  response.body() = "HTTP/1.1 502 Bad Gateway";
+  response.prepare_payload();
   sendResToClient();
 }
 /*------------------------------------  EOF  ---------------------------------------*/
