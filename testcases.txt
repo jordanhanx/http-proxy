@@ -1,0 +1,26 @@
+### GET Cache
+http://mockbin.org/bin/8c29271a-a030-4858-b517-ffffc69d367c?foo=bar&foo=baz
+http://mockbin.org/bin/dbf720c1-3b67-48c7-9dc6-29b586dcad60?foo=bar&foo=baz
+http://mockbin.org/bin/f4a08df2-ec30-43b8-a645-362cf4b1a8f1?foo=bar&foo=baz
+http://mockbin.org/bin/a44952eb-9ec3-4522-b36e-15f71dc0460d?foo=bar&foo=baz
+http://mockbin.org/bin/28391381-2f7a-4161-84b3-e75073a0d09f?foo=bar&foo=baz
+http://mockbin.org/bin/1c440ace-5a84-4ab7-ac9e-3684d558bf19?foo=bar&foo=baz
+http://mockbin.org/bin/581f805f-d075-4f1a-a2e2-170d3315ec75?foo=bar&foo=baz
+http://www.artsci.utoronto.ca/futurestudents
+
+### GET 301 Moved Permanently
+http://www.man7.org/linux/man-pages/man2/recv.2.html
+
+### GET 400 bad request
+http://www.eofjnsdkc.com/
+
+### GET large chuncked
+http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx
+
+### POST testcases
+http://httpbin.org/forms/post](http://httpbin.org/forms/post
+
+
+### CONNECT testcases
+https://www.youtube.com/
+https://www.bilibili.tv/en
