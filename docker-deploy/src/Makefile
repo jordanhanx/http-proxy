@@ -20,6 +20,7 @@ PROGS = $(addprefix $(BUILD_DIR)/, $(patsubst %.cpp, %, $(notdir $(MAIN_SRCS))))
 
 ### targets ###
 all: initProj $(PROGS)
+	@echo Compiled successfully.
 
 $(PROGS): $(BUILD_DIR)/%: $(OBJ_DIR)/%.o $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LIBS)
